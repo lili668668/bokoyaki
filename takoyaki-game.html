@@ -1,0 +1,603 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>球魚燒製作遊戲</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .game-container {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            max-width: 800px;
+            position: relative;
+        }
+
+        .grill-wrapper {
+            position: relative;
+            margin-bottom: 20px;
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 2em;
+        }
+
+        .game-info {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 10px;
+        }
+
+        .info-item {
+            text-align: center;
+        }
+
+        .info-label {
+            font-size: 0.9em;
+            color: #666;
+            margin-bottom: 5px;
+        }
+
+        .info-value {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .grill {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            background: #2c3e50;
+            padding: 20px;
+            border-radius: 15px;
+        }
+
+        .slot {
+            aspect-ratio: 1;
+            background: #34495e;
+            border: 3px solid #465a6b;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32"><rect x="5" y="4" width="2.5" height="26" rx="1" fill="%23d2691e" transform="rotate(-35 6.25 17)"/><rect x="10" y="4" width="2.5" height="26" rx="1" fill="%23cd853f" transform="rotate(-30 11.25 17)"/></svg>') 2 2, pointer;
+            transition: all 0.3s;
+            position: relative;
+            font-size: 2em;
+        }
+
+        .slot:hover {
+            transform: scale(1.05);
+            border-color: #667eea;
+        }
+
+        .slot:active {
+            transform: scale(0.95);
+        }
+
+        .slot.empty {
+            background: #34495e;
+            cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32"><text x="16" y="24" font-size="24" text-anchor="middle" transform="rotate(-25 16 16)">🫙</text></svg>') 16 16, pointer;
+        }
+
+        .slot.batter {
+            background: #f4e4c1;
+            cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32"><circle cx="16" cy="16" r="12" fill="%23b0d4f1"/><circle cx="12" cy="13" r="2" fill="%23555"/><circle cx="20" cy="13" r="2" fill="%23555"/></svg>') 16 16, pointer;
+        }
+
+        .slot.octopus {
+            background: #f4e4c1;
+        }
+
+        .slot.octopus::after {
+            content: '';
+            width: 60%;
+            height: 60%;
+            background-image: url('ballfish.png');
+            background-size: contain;
+            background-repeat: no-repeat;
+            background-position: center;
+            position: absolute;
+        }
+
+        .slot.flip1 {
+            background: #e8d4a8;
+        }
+
+        .slot.flip2 {
+            background: #d4b896;
+        }
+
+        .slot.ready {
+            background: #c19a6b;
+            animation: pulse 1s infinite;
+        }
+
+        .slot.ready::after {
+            content: '✨';
+            font-size: 0.7em;
+        }
+
+        .slot.burnt {
+            background: #2c1810;
+            cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32"><text x="16" y="24" font-size="24" text-anchor="middle">🗑️</text></svg>') 16 16, pointer;
+        }
+
+        .slot.burnt::after {
+            content: '💀';
+            font-size: 0.8em;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        .timer-bar {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            height: 5px;
+            background: linear-gradient(90deg, #2ecc71, #f39c12, #e74c3c);
+            transition: width 0.1s linear;
+            border-radius: 0 0 50% 50%;
+        }
+
+        .controls {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 100;
+            pointer-events: auto;
+        }
+
+        .btn {
+            padding: 15px 25px;
+            font-size: 1.1em;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn-batter {
+            background: #f39c12;
+            color: white;
+        }
+
+        .btn-octopus {
+            background: #e74c3c;
+            color: white;
+        }
+
+        .btn-flip {
+            background: #3498db;
+            color: white;
+        }
+
+        .btn-box {
+            background: #2ecc71;
+            color: white;
+        }
+
+        .btn-trash {
+            background: #95a5a6;
+            color: white;
+        }
+
+        .btn-start {
+            background: #9b59b6;
+            color: white;
+            padding: 20px 40px;
+            font-size: 1.5em;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+
+        .instructions {
+            background: #fff3cd;
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 20px;
+            border-left: 4px solid #f39c12;
+        }
+
+        .instructions h3 {
+            color: #856404;
+            margin-bottom: 10px;
+        }
+
+        .instructions ol {
+            margin-left: 20px;
+            color: #856404;
+        }
+
+        .instructions li {
+            margin: 5px 0;
+        }
+
+        .game-over {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .game-over.show {
+            display: flex;
+        }
+
+        .game-over-content {
+            background: white;
+            padding: 40px;
+            border-radius: 20px;
+            text-align: center;
+        }
+
+        .game-over-content h2 {
+            font-size: 2.5em;
+            color: #667eea;
+            margin-bottom: 20px;
+        }
+
+        .game-over-content p {
+            font-size: 1.5em;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <h1><img src="ballfish.png" style="width: 40px; height: 40px; vertical-align: middle;"> 球魚燒製作遊戲 <img src="ballfish.png" style="width: 40px; height: 40px; vertical-align: middle;"></h1>
+
+        <div class="game-info">
+            <div class="info-item">
+                <div class="info-label">剩餘時間</div>
+                <div class="info-value" id="timeLeft">3:00</div>
+            </div>
+            <div class="info-item">
+                <div class="info-label">完成數量</div>
+                <div class="info-value" id="score">0</div>
+            </div>
+            <div class="info-item">
+                <div class="info-label">燒焦數量</div>
+                <div class="info-value" id="burnt">0</div>
+            </div>
+        </div>
+
+        <div class="grill-wrapper">
+            <div class="grill" id="grill"></div>
+            <div class="controls">
+                <button class="btn btn-start" id="btnStart">開始遊戲</button>
+            </div>
+        </div>
+
+        <div class="instructions">
+            <h3>遊戲說明：</h3>
+            <ol>
+                <li>點擊空格子 → 倒麵糊</li>
+                <li>點擊有麵糊的格子 → 放球魚（需等待3秒才能翻面）</li>
+                <li>第一次翻面後需等待3秒才能再翻面</li>
+                <li>第二次翻面後需等待3秒球魚燒才會熟</li>
+                <li>球魚燒熟後有5秒倒數，趕快裝盒！</li>
+                <li>超過5秒會燒焦，點擊燒焦的格子丟垃圾桶</li>
+                <li>在3分鐘內製作越多越好！</li>
+            </ol>
+        </div>
+    </div>
+
+    <div class="game-over" id="gameOver">
+        <div class="game-over-content">
+            <h2>時間到！</h2>
+            <p>你完成了 <span id="finalScore">0</span> 個球魚燒！</p>
+            <p>燒焦了 <span id="finalBurnt">0</span> 個</p>
+            <button class="btn btn-start" onclick="location.reload()">再玩一次</button>
+        </div>
+    </div>
+
+    <script>
+        // 遊戲狀態
+        const STATES = {
+            EMPTY: 'empty',
+            BATTER: 'batter',
+            OCTOPUS: 'octopus',
+            FLIP1: 'flip1',
+            FLIP2: 'flip2',
+            READY: 'ready',
+            BURNT: 'burnt'
+        };
+
+        // 遊戲數據
+        let gameData = {
+            slots: Array(16).fill(null).map(() => ({
+                state: STATES.EMPTY,
+                timer: null,
+                timeLeft: 5,
+                canProgress: true, // 是否可以進行下一步
+                waitTime: 0, // 等待倒數時間（用於顯示進度條）
+                maxWaitTime: 3 // 最大等待時間
+            })),
+            score: 0,
+            burnt: 0,
+            gameTime: 180, // 3分鐘
+            gameTimer: null,
+            gameStarted: false
+        };
+
+        // DOM元素
+        const grill = document.getElementById('grill');
+        const btnStart = document.getElementById('btnStart');
+        const timeLeftEl = document.getElementById('timeLeft');
+        const scoreEl = document.getElementById('score');
+        const burntEl = document.getElementById('burnt');
+
+        // 初始化烤盤
+        function initGrill() {
+            grill.innerHTML = '';
+            for (let i = 0; i < 16; i++) {
+                const slot = document.createElement('div');
+                slot.className = 'slot empty';
+                slot.dataset.index = i;
+                slot.addEventListener('click', () => handleSlotClick(i));
+                grill.appendChild(slot);
+            }
+        }
+
+        // 處理點擊格子
+        function handleSlotClick(index) {
+            if (!gameData.gameStarted) return;
+
+            const slotData = gameData.slots[index];
+
+            switch (slotData.state) {
+                case STATES.EMPTY:
+                    // 倒麵糊
+                    slotData.state = STATES.BATTER;
+                    slotData.canProgress = true;
+                    updateSlot(index);
+                    break;
+
+                case STATES.BATTER:
+                    // 放章魚
+                    slotData.state = STATES.OCTOPUS;
+                    slotData.canProgress = false;
+                    updateSlot(index);
+                    // 3秒後可以翻面
+                    startWaitingTimer(index, 3);
+                    break;
+
+                case STATES.OCTOPUS:
+                    // 第一次翻面 - 需要等待3秒
+                    if (!slotData.canProgress) return;
+                    slotData.state = STATES.FLIP1;
+                    slotData.canProgress = false;
+                    updateSlot(index);
+                    // 3秒後可以再翻面
+                    startWaitingTimer(index, 3);
+                    break;
+
+                case STATES.FLIP1:
+                    // 第二次翻面 - 需要等待3秒
+                    if (!slotData.canProgress) return;
+                    slotData.state = STATES.FLIP2;
+                    slotData.canProgress = false;
+                    updateSlot(index);
+                    // 3秒後變成READY
+                    startCookingTimer(index);
+                    break;
+
+                case STATES.READY:
+                    // 裝盒
+                    clearInterval(slotData.timer);
+                    slotData.state = STATES.EMPTY;
+                    slotData.timeLeft = 5;
+                    slotData.waitTime = 0;
+                    slotData.canProgress = true;
+                    gameData.score++;
+                    scoreEl.textContent = gameData.score;
+                    updateSlot(index);
+                    break;
+
+                case STATES.BURNT:
+                    // 丟垃圾桶
+                    clearInterval(slotData.timer);
+                    slotData.state = STATES.EMPTY;
+                    slotData.timeLeft = 5;
+                    slotData.waitTime = 0;
+                    slotData.canProgress = true;
+                    updateSlot(index);
+                    break;
+            }
+        }
+
+        // 更新圓格顯示
+        function updateSlot(index) {
+            const slot = grill.children[index];
+            const data = gameData.slots[index];
+            slot.className = `slot ${data.state}`;
+
+            // 移除舊的計時條
+            const oldBar = slot.querySelector('.timer-bar');
+            if (oldBar) oldBar.remove();
+
+            // 顯示計時條的狀態
+            const needsProgressBar = (
+                (data.state === STATES.OCTOPUS && data.waitTime > 0) ||
+                (data.state === STATES.FLIP1 && data.waitTime > 0) ||
+                (data.state === STATES.FLIP2 && data.waitTime > 0) ||
+                (data.state === STATES.READY && data.timeLeft > 0)
+            );
+
+            if (needsProgressBar) {
+                const bar = document.createElement('div');
+                bar.className = 'timer-bar';
+
+                // 根據狀態使用不同的時間計算
+                if (data.state === STATES.READY) {
+                    bar.style.width = `${(data.timeLeft / 5) * 100}%`;
+                } else {
+                    // 等待階段使用 waitTime
+                    bar.style.width = `${(data.waitTime / data.maxWaitTime) * 100}%`;
+                }
+
+                slot.appendChild(bar);
+            }
+        }
+
+        // 等待計時器（等待指定秒數後可以進行下一步）
+        function startWaitingTimer(index, seconds) {
+            const slot = gameData.slots[index];
+            clearInterval(slot.timer);
+
+            slot.waitTime = seconds;
+            slot.maxWaitTime = seconds;
+
+            slot.timer = setInterval(() => {
+                slot.waitTime -= 0.1;
+
+                if (slot.waitTime <= 0) {
+                    clearInterval(slot.timer);
+                    slot.canProgress = true;
+                    slot.waitTime = 0;
+                    updateSlot(index);
+                } else {
+                    updateSlot(index);
+                }
+            }, 100);
+        }
+
+        // 烹飪計時器（3秒後變成READY，然後開始燒焦倒數）
+        function startCookingTimer(index) {
+            const slot = gameData.slots[index];
+            clearInterval(slot.timer);
+
+            slot.waitTime = 3;
+            slot.maxWaitTime = 3;
+
+            slot.timer = setInterval(() => {
+                slot.waitTime -= 0.1;
+
+                if (slot.waitTime <= 0) {
+                    clearInterval(slot.timer);
+                    slot.state = STATES.READY;
+                    slot.timeLeft = 5;
+                    slot.waitTime = 0;
+                    updateSlot(index);
+
+                    // 開始燒焦倒數
+                    startBurningTimer(index);
+                } else {
+                    updateSlot(index);
+                }
+            }, 100);
+        }
+
+        // 開始燒焦計時器
+        function startBurningTimer(index) {
+            const slot = gameData.slots[index];
+            clearInterval(slot.timer);
+
+            slot.timer = setInterval(() => {
+                slot.timeLeft -= 0.1;
+
+                if (slot.timeLeft <= 0) {
+                    clearInterval(slot.timer);
+                    slot.state = STATES.BURNT;
+                    gameData.burnt++;
+                    burntEl.textContent = gameData.burnt;
+                    updateSlot(index);
+                } else {
+                    updateSlot(index);
+                }
+            }, 100);
+        }
+
+        // 開始遊戲
+        btnStart.addEventListener('click', () => {
+            if (gameData.gameStarted) return;
+
+            gameData.gameStarted = true;
+            gameData.gameTime = 180;
+
+            // 隱藏開始按鈕
+            document.querySelector('.controls').style.display = 'none';
+
+            gameData.gameTimer = setInterval(() => {
+                gameData.gameTime--;
+                const minutes = Math.floor(gameData.gameTime / 60);
+                const seconds = gameData.gameTime % 60;
+                timeLeftEl.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+
+                if (gameData.gameTime <= 0) {
+                    endGame();
+                }
+            }, 1000);
+        });
+
+        // 結束遊戲
+        function endGame() {
+            clearInterval(gameData.gameTimer);
+            gameData.gameStarted = false;
+
+            // 停止所有計時器
+            gameData.slots.forEach(slot => {
+                if (slot.timer) clearInterval(slot.timer);
+            });
+
+            document.getElementById('finalScore').textContent = gameData.score;
+            document.getElementById('finalBurnt').textContent = gameData.burnt;
+            document.getElementById('gameOver').classList.add('show');
+        }
+
+        // 初始化遊戲
+        initGrill();
+    </script>
+</body>
+</html>
